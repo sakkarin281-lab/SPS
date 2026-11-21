@@ -1,0 +1,38 @@
+name: Report SPS APK build result
+
+on:
+  workflow_run:
+    workflows: ["Build S.P. School Android APKs"]
+    types: [completed]
+
+permissions:
+  actions: read
+  issues: write
+  contents: read
+
+jobs:
+  report:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Post build result to diagnostic issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BUILD_RUN_ID: ${{ github.event.workflow_run.id }}
+          BUILD_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+          BUILD_URL: ${{ github.event.workflow_run.html_url }}
+        shell: bash
+        run: |
+          {
+            echo "## SPS Android APK build result"
+            echo "Run ID: $BUILD_RUN_ID"
+            echo "Status: $BUILD_CONCLUSION"
+            echo "Run: $BUILD_URL"
+            echo
+            echo "### Jobs"
+            gh api "repos/$GITHUB_REPOSITORY/actions/runs/$BUILD_RUN_ID/jobs?per_page=100" --jq '.jobs[] | "- \(.name): \(.conclusion) | failed step: \([.steps[]? | select(.conclusion == "failure") | .name] | join(", "))"'
+            echo
+            echo "### Artifacts"
+            gh api "repos/$GITHUB_REPOSITORY/actions/runs/$BUILD_RUN_ID/artifacts?per_page=100" --jq '.artifacts[]? | "- \(.name) (ID \(.id))"'
+          } > /tmp/sps-status.md
+          gh issue comment 1 --repo "$GITHUB_REPOSITORY" --body-file /tmp/sps-status.md
