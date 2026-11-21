@@ -22,11 +22,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          runid=$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/build-apks.yml/runs?per_page=50" --jq '.workflow_runs[] | select(.run_number == 1) | .id' | head -n 1)
+          runid=$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/build-apks.yml/runs?per_page=50" --jq '.workflow_runs[] | select(.run_number >= 2) | .id' | head -n 1)
           if [[ -z "$runid" ]]; then
-            echo 'Original build #1 was not found'; exit 1
+            echo 'No new build run was found'; exit 1
           fi
-          echo "# SPS Android APKs: original build #1 diagnostic" > /tmp/report.md
+          echo "# SPS Android APKs: most recent build diagnostic" > /tmp/report.md
           echo "Run: https://github.com/${GITHUB_REPOSITORY}/actions/runs/${runid}" >> /tmp/report.md
           gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${runid}/jobs?per_page=100" --jq '.jobs[] | select(.conclusion == "failure") | [.id, .name] | @tsv' > /tmp/jobs.tsv
           while IFS=$'\t' read -r jobid jobname; do
@@ -43,4 +43,4 @@ jobs:
             echo '~~~' >> /tmp/report.md
           done < /tmp/jobs.tsv
           head -c 28000 /tmp/report.md > /tmp/report-public.md
-          gh issue create -R "$GITHUB_REPOSITORY" --title 'SPS Android APK build #1 - automated error diagnostics' --body-file /tmp/report-public.md
+          gh issue comment 1 -R "$GITHUB_REPOSITORY" --body-file /tmp/report-public.md
