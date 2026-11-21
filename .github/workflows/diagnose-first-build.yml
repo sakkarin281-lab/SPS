@@ -22,7 +22,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          runid=$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/build-apks.yml/runs?per_page=50" --jq '.workflow_runs[] | select(.run_number >= 2) | .id' | head -n 1)
+          runid=$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/build-apks.yml/runs?per_page=50" --jq '.workflow_runs[] | select(.run_number >= 3) | .id' | head -n 1)
           if [[ -z "$runid" ]]; then
             echo 'No new build run was found'; exit 1
           fi
