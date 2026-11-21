@@ -53,9 +53,12 @@ jobs:
           set -euo pipefail
           : "${ANDROID_HOME:?The runner must have an Android SDK}"
           echo "ANDROID_HOME=$ANDROID_HOME"
-          command -v sdkmanager
-          yes | sdkmanager --sdk_root="$ANDROID_HOME" --licenses >/dev/null || true
-          sdkmanager --sdk_root="$ANDROID_HOME" "platforms;android-35" "build-tools;35.0.0"
+          sdkmanager_bin=$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager | sort -V | tail -n 1)
+          test -n "$sdkmanager_bin"
+          test -x "$sdkmanager_bin"
+          echo "Android SDK manager: $sdkmanager_bin"
+          yes | "$sdkmanager_bin" --sdk_root="$ANDROID_HOME" --licenses >/dev/null || true
+          "$sdkmanager_bin" --sdk_root="$ANDROID_HOME" "platforms;android-35" "build-tools;35.0.0"
 
       - name: Gradle 8.9
         uses: gradle/actions/setup-gradle@v4
