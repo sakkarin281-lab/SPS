@@ -3,6 +3,10 @@ name: Build S.P. School Android APKs
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - 'README.md'
+      - '.github/workflows/diagnose-first-build.yml'
+      - '.github/workflows/report-build.yml'
   workflow_dispatch:
 
 permissions:
@@ -11,7 +15,7 @@ permissions:
 jobs:
   build:
     name: ${{ matrix.label }} APK
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 35
     strategy:
       fail-fast: false
@@ -41,11 +45,17 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Install SDK packages
-        run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
+      # Avoid android-actions/setup-android@v3: it attempted the obsolete
+      # SDK package 'tools' on ubuntu-26.04 and failed during build #1.
+      - name: Install supported Android SDK packages
+        shell: bash
+        run: |
+          set -euo pipefail
+          : "${ANDROID_HOME:?The runner must have an Android SDK}"
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          command -v sdkmanager
+          yes | sdkmanager --sdk_root="$ANDROID_HOME" --licenses >/dev/null || true
+          sdkmanager --sdk_root="$ANDROID_HOME" "platforms;android-35" "build-tools;35.0.0"
 
       - name: Gradle 8.9
         uses: gradle/actions/setup-gradle@v4
